@@ -16,6 +16,8 @@
 #include <mutex>
 #include <memory>
 
+#include "../CBasic/CBasicInclude.h"
+
 CGRAPH_NAMESPACE_BEGIN
 
 static std::mutex g_session_mtx;
@@ -36,6 +38,23 @@ public:
         T* ptr = nullptr;
         while (!ptr) {
             ptr = new(std::nothrow) T();
+        }
+        return ptr;
+    }
+
+    /**
+     * 生成带参数的普通指针
+     * @tparam T
+     * @tparam Args
+     * @param args
+     * @return
+     */
+    template<typename T, typename ...Args,
+            std::enable_if_t<std::is_base_of<CObject, T>::value, int> = 0>
+    static T* safeMallocTemplateCObject(Args... args) {
+        T* ptr = nullptr;
+        while (!ptr) {
+            ptr = new T(std::forward<Args>(args)...);
         }
         return ptr;
     }

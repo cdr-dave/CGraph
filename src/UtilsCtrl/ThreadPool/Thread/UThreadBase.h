@@ -13,18 +13,19 @@
 
 #include "../UThreadObject.h"
 #include "../Queue/UQueueInclude.h"
+#include "../Task/UTaskInclude.h"
 
 
 CGRAPH_NAMESPACE_BEGIN
 
 class UThreadBase : public UThreadObject {
-
 protected:
     explicit UThreadBase() {
         done_ = true;
         is_init_ = false;
         is_running_ = false;
         pool_task_queue_ = nullptr;
+        pool_priority_task_queue_ = nullptr;
         config_ = nullptr;
         total_task_num_ = 0;
     }
@@ -54,8 +55,13 @@ protected:
      * @param task
      * @return
      */
-    virtual bool popPoolTask(UTaskWrapperRef task) {
-        return (pool_task_queue_ && pool_task_queue_->tryPop(task));
+    virtual bool popPoolTask(UTaskRef task) {
+        bool result = pool_task_queue_->tryPop(task);
+        if (!result && CGRAPH_THREAD_TYPE_SECONDARY == type_) {
+            // 如果辅助线程没有获取到的话，还需要再尝试从长时间任务队列中，获取一次
+            result = pool_priority_task_queue_->tryPop(task);
+        }
+        return result;
     }
 
 
@@ -64,8 +70,12 @@ protected:
      * @param tasks
      * @return
      */
-    virtual bool popPoolTask(UTaskWrapperArrRef tasks) {
-        return (pool_task_queue_ && pool_task_queue_->tryPop(tasks, config_->max_pool_batch_size_));
+    virtual bool popPoolTask(UTaskArrRef tasks) {
+        bool result = pool_task_queue_->tryPop(tasks, config_->max_pool_batch_size_);
+        if (!result && CGRAPH_THREAD_TYPE_SECONDARY == type_) {
+            result = pool_priority_task_queue_->tryPop(tasks, 1);    // 从优先队列里，最多pop出来一个
+        }
+        return result;
     }
 
 
@@ -73,7 +83,7 @@ protected:
      * 执行单个任务
      * @param task
      */
-    CVoid runTask(UTaskWrapper& task) {
+    CVoid runTask(UTask& task) {
         is_running_ = true;
         task();
         total_task_num_++;
@@ -85,7 +95,7 @@ protected:
      * 批量执行任务
      * @param tasks
      */
-    CVoid runTasks(UTaskWrapperArr& tasks) {
+    CVoid runTasks(UTaskArr& tasks) {
         is_running_ = true;
         for (auto& task : tasks) {
             task();
@@ -96,7 +106,7 @@ protected:
 
 
     /**
-     * 清空所有任荣
+     * 清空所有任务内容
      */
     CVoid reset() {
         done_ = false;
@@ -184,16 +194,16 @@ private:
 
 
 protected:
-    bool done_;                                               // 线程状态标记
-    bool is_init_;                                            // 标记初始化状态
-    bool is_running_;                                         // 是否正在执行
-    int type_ = 0;                                            // 用于区分线程类型（主线程、辅助线程）
-    unsigned long long total_task_num_;                       // 处理的任务的数字
+    bool done_;                                                        // 线程状态标记
+    bool is_init_;                                                     // 标记初始化状态
+    bool is_running_;                                                  // 是否正在执行
+    int type_ = 0;                                                     // 用于区分线程类型（主线程、辅助线程）
+    unsigned long total_task_num_ = 0;                                 // 处理的任务的数字
 
-    UAtomicQueue<UTaskWrapper>* pool_task_queue_;             // 用于存放线程池中的普通任务
-    UThreadPoolConfigPtr config_;                             // 配置参数信息
-
-    std::thread thread_;                                      // 线程类
+    UAtomicQueue<UTask>* pool_task_queue_;                             // 用于存放线程池中的普通任务
+    UAtomicPriorityQueue<UTask>* pool_priority_task_queue_;            // 用于存放线程池中的包含优先级任务的队列，仅辅助线程可以执行
+    UThreadPoolConfigPtr config_ = nullptr;                            // 配置参数信息
+    std::thread thread_;                                               // 线程类
 };
 
 CGRAPH_NAMESPACE_END

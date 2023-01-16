@@ -16,7 +16,7 @@ CGRAPH_NAMESPACE_BEGIN
 class UThreadPrimary : public UThreadBase {
 protected:
     explicit UThreadPrimary() {
-        index_ = -1;
+        index_ = CGRAPH_SECONDARY_THREAD_COMMON_ID;
         pool_threads_ = nullptr;
         type_ = CGRAPH_THREAD_TYPE_PRIMARY;
     }
@@ -42,7 +42,7 @@ protected:
      * @param config
      */
     CStatus setThreadPoolInfo(int index,
-                              UAtomicQueue<UTaskWrapper>* poolTaskQueue,
+                              UAtomicQueue<UTask>* poolTaskQueue,
                               std::vector<UThreadPrimary *>* poolThreads,
                               UThreadPoolConfigPtr config) {
         CGRAPH_FUNCTION_BEGIN
@@ -78,7 +78,7 @@ protected:
                         [](UThreadPrimary* thd) {
                             return nullptr == thd;
                         })) {
-            return CStatus("primary thread is null");
+            CGRAPH_RETURN_ERROR_STATUS("primary thread is null")
         }
 
         if (config_->calcBatchTaskRatio()) {
@@ -100,7 +100,7 @@ protected:
      * @return
      */
     CVoid processTask() {
-        UTaskWrapper task;
+        UTask task;
         if (popTask(task) || popPoolTask(task) || stealTask(task)) {
             runTask(task);
         } else {
@@ -113,7 +113,7 @@ protected:
      * 获取批量执行task信息
      */
     CVoid processTasks() {
-        UTaskWrapperArr tasks;
+        UTaskArr tasks;
         if (popTask(tasks) || popPoolTask(tasks) || stealTask(tasks)) {
             // 尝试从主线程中获取/盗取批量task，如果成功，则依次执行
             runTasks(tasks);
@@ -128,7 +128,7 @@ protected:
      * @param task
      * @return
      */
-    bool popTask(UTaskWrapperRef task) {
+    bool popTask(UTaskRef task) {
         return work_stealing_queue_.tryPop(task);
     }
 
@@ -138,7 +138,7 @@ protected:
      * @param tasks
      * @return
      */
-    bool popTask(UTaskWrapperArrRef tasks) {
+    bool popTask(UTaskArrRef tasks) {
         return work_stealing_queue_.tryPop(tasks, config_->max_local_batch_size_);
     }
 
@@ -148,7 +148,7 @@ protected:
      * @param task
      * @return
      */
-    bool stealTask(UTaskWrapperRef task) {
+    bool stealTask(UTaskRef task) {
         if (unlikely(pool_threads_->size() < config_->default_thread_size_)) {
             /**
              * 线程池还未初始化完毕的时候，无法进行steal。
@@ -183,7 +183,7 @@ protected:
      * @param tasks
      * @return
      */
-    bool stealTask(UTaskWrapperArrRef tasks) {
+    bool stealTask(UTaskArrRef tasks) {
         if (unlikely(pool_threads_->size() < config_->default_thread_size_)) {
             return false;
         }
@@ -201,7 +201,7 @@ protected:
     }
 
 private:
-    int index_ {-1};                                               // 线程index
+    int index_ {CGRAPH_SECONDARY_THREAD_COMMON_ID};                // 线程index
     UWorkStealingQueue work_stealing_queue_;                       // 内部队列信息
     std::vector<UThreadPrimary *>* pool_threads_;                  // 用于存放线程池中的线程信息
 

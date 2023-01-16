@@ -2,7 +2,7 @@
 set_project("CGraph")
 
 -- set project version
-set_version("1.8.5")
+set_version("2.1.1")
 
 -- set language: c++17
 set_languages("c++17")
@@ -32,6 +32,9 @@ tutorial_list = {
         "T12-Function",
         "T13-Daemon",
         "T14-Hold",
+        "T15-ElementParam",
+        "T16-MessageSendRecv",
+        "T17-MessagePubSub",
         "TU01-ThreadPool",
         "TU02-Lru",
         "TU03-Trie",

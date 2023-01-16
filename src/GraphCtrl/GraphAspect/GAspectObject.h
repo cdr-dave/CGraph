@@ -27,7 +27,7 @@ public:
      * 获取name信息
      * @return
      */
-    virtual const std::string& getName() final {
+    virtual const std::string& getName() {
         return name_;
     }
 
@@ -47,16 +47,6 @@ public:
               std::enable_if_t<std::is_base_of<GAspectParam, T>::value, int> = 0>
     GAspectObject* setAParam(T* param);
 
-    /**
-     * 获取pipeline中的参数信息
-     * @tparam T
-     * @param key
-     * @return
-     */
-    template <typename T,
-              std::enable_if_t<std::is_base_of<GParam, T>::value, int> = 0>
-    T* getGParam(const std::string& key);
-
 protected:
     /**
      * 设置名称
@@ -68,12 +58,12 @@ protected:
     }
 
     /**
-     * 设置pipeline中相关的参数信息
+     * 设置GParam 参数管理类
      * @param pm
      * @return
      */
-    virtual GAspectObject* setPipelineParamManager(GParamManagerPtr pm) {
-        pipeline_param_manager_ = pm;
+    GAspectObject* setGParamManager(const GParamManagerPtr pm) {
+        param_manager_ = pm;
         return this;
     }
 
@@ -85,10 +75,12 @@ protected:
         CGRAPH_NO_SUPPORT
     }
 
+    CGRAPH_DECLARE_GPARAM_MANAGER_WRAPPER
+
 private:
     std::string name_;                                        // 切面类名称，跟 element 名称保持相同
     GAspectParamPtr param_ { nullptr };                       // 参数信息
-    GParamManagerPtr pipeline_param_manager_ { nullptr };     // 对应 pipeline 中参数管理器
+    GParamManagerPtr param_manager_ { nullptr };              // GParam参数管理类
 
     friend class GAspectManager;
     friend class GElement;

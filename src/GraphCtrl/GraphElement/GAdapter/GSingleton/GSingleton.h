@@ -11,7 +11,7 @@
 
 #include "../GAdapter.h"
 
-#if _LIBCPP_STD_VER >= 17
+#if __cplusplus >= 201703L
 
 CGRAPH_NAMESPACE_BEGIN
 
@@ -29,15 +29,13 @@ protected:
      * @param loop
      * @param level
      * @param paramManager
-     * @param threadPool
      * @return
      */
     CStatus setElementInfo(const std::set<GElementPtr> &dependElements,
                            const std::string &name,
                            CSize loop,
                            CLevel level,
-                           GParamManagerPtr paramManager,
-                           UThreadPoolPtr threadPool) override;
+                           GParamManagerPtr paramManager) override;
 
 private:
     static USingleton<T, USingletonType::HUNGRY> s_singleton_;     // 单例自身
@@ -55,5 +53,5 @@ CGRAPH_NAMESPACE_END
 
 #endif //CGRAPH_GSINGLETON_H
 
-#endif // _LIBCPP_STD_VER >= 17
+#endif // __cplusplus >= 201703L
 

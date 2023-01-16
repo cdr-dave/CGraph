@@ -11,8 +11,10 @@
 
 #include "GParam.h"
 #include "GPassedParam.h"
+#include "GMessageParam.h"
 #include "GPassedDefaultParam.h"
 #include "GParamManager.h"
-#include "GParamDefine.h"
+#include "GParamUtils.h"
+#include "GParamManagerWrapper.h"
 
 #endif //CGRAPH_GPARAMINCLUDE_H

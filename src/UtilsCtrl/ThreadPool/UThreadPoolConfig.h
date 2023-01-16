@@ -17,6 +17,7 @@ CGRAPH_NAMESPACE_BEGIN
 struct UThreadPoolConfig : public UThreadObject {
     /** 具体值含义，参考UThreadPoolDefine.h文件 */
     int default_thread_size_ = CGRAPH_DEFAULT_THREAD_SIZE;
+    int secondary_thread_size_ = CGRAPH_SECONDARY_THREAD_SIZE;
     int max_thread_size_ = CGRAPH_MAX_THREAD_SIZE;
     int max_task_steal_range_ = CGRAPH_MAX_TASK_STEAL_RANGE;
     int max_local_batch_size_ = CGRAPH_MAX_LOCAL_BATCH_SIZE;
@@ -31,6 +32,8 @@ struct UThreadPoolConfig : public UThreadObject {
     bool bind_cpu_enable_ = CGRAPH_BIND_CPU_ENABLE;
     bool batch_task_enable_ = CGRAPH_BATCH_TASK_ENABLE;
     bool fair_lock_enable_ = CGRAPH_FAIR_LOCK_ENABLE;
+    bool monitor_enable_ = CGRAPH_MONITOR_ENABLE;
+
 
 protected:
     /**

@@ -18,7 +18,8 @@
 
 CGRAPH_NAMESPACE_BEGIN
 
-class GParamManager : public GParamObject, public GraphManager<GParam> {
+class GParamManager : public GParamObject,
+                      public GraphManager<GParam> {
 public:
     /**
      * 创建一个特定类型的参数
@@ -38,6 +39,12 @@ public:
     template<typename T, std::enable_if_t<std::is_base_of<GParam, T>::value, int> = 0>
     T* get(const std::string& key);
 
+    /**
+     * 删除特定的param信息
+     * @param key
+     * @return
+     */
+    CStatus remove(const std::string& key);
 
 protected:
     explicit GParamManager();
@@ -60,7 +67,6 @@ protected:
 private:
     std::unordered_map<std::string, GParamPtr> params_map_;           // 记录param信息的hash表
     std::mutex lock_;                                                 // 创建param的时候上锁
-    CBool is_init_ { false };                                         // 标记是否初始化结束
 
     friend class GPipeline;
     friend class UAllocator;

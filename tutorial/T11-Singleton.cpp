@@ -11,7 +11,7 @@
 
 using namespace CGraph;
 
-#if _LIBCPP_STD_VER >= 17
+#if __cplusplus >= 201703L
 
 void tutorial_singleton() {
     GPipelinePtr pipeline = GPipelineFactory::create();
@@ -29,6 +29,7 @@ void tutorial_singleton() {
     pipeline->process();
     GPipelineFactory::remove(pipeline);
 }
+
 
 int main() {
     tutorial_singleton();

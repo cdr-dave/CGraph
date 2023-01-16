@@ -1,13 +1,15 @@
 /***************************
 @Author: Chunel
 @Contact: chunel@foxmail.com
-@File: GParamDefine.h
-@Time: 2022/1/25 10:34 下午
-@Desc: 
+@File: GParamUtils.h
+@Time: 2022/11/1 23:37
+@Desc:
 ***************************/
 
-#ifndef CGRAPH_GPARAMDEFINE_H
-#define CGRAPH_GPARAMDEFINE_H
+#ifndef CGRAPH_GPARAMUTILS_H
+#define CGRAPH_GPARAMUTILS_H
+
+#include "../GraphObject.h"
 
 CGRAPH_NAMESPACE_BEGIN
 
@@ -18,6 +20,14 @@ CGRAPH_NAMESPACE_BEGIN
 /** 获取参数信息 */
 #define CGRAPH_GET_GPARAM(Type, key)                  \
     this->getGParam<Type>(key);                       \
+
+/** 获取参数信息，为空则抛出异常 */
+#define CGRAPH_GET_GPARAM_WITH_NO_EMPTY(Type, key)    \
+    this->getGParamWithNoEmpty<Type>(key);            \
+
+/** 删除一个参数 */
+#define CGRAPH_DELETE_GPARAM(key)                     \
+    this->removeGParam(key);                          \
 
 /** 获取element内部参数信息 */
 #define CGRAPH_GET_EPARAM(Type, key)                  \
@@ -33,4 +43,5 @@ CGRAPH_NAMESPACE_BEGIN
 
 CGRAPH_NAMESPACE_END
 
-#endif //CGRAPH_GPARAMDEFINE_H
+
+#endif //CGRAPH_GPARAMUTILS_H

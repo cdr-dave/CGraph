@@ -15,13 +15,7 @@ void tutorial_simple() {
     /* 创建图对应的pipeline */
     GPipelinePtr pipeline = GPipelineFactory::create();
 
-    /**
-     * 本例中为了简化流程，做此写法。实际使用中，建议每个变量定义一行，例：
-     * GElementPtr a = nullptr;
-     * GElementPtr b = nullptr;
-     * GElementPtr c = nullptr;
-     * GElementPtr d = nullptr;
-     */
+    /* 定义GElementPtr类型的变量 */
     GElementPtr a, b, c, d = nullptr;
 
     /**
@@ -37,18 +31,19 @@ void tutorial_simple() {
     }
 
     /* 图信息初始化，准备开始计算 */
-    status = pipeline->init();
+    status += pipeline->init();
 
     /* 运行流图信息。初始化后，支持多次循环计算 */
     for (int i = 0; i < 3; i++) {
-        status = pipeline->run();
+        status += pipeline->run();
         CGRAPH_ECHO("==== tutorial_simple, loop : [%d], and run status = [%d].", i + 1, status.getCode());
     }
 
     /* 图信息逆初始化，准备结束计算 */
-    status = pipeline->destroy();
+    status += pipeline->destroy();
     GPipelineFactory::remove(pipeline);
 }
+
 
 int main () {
     tutorial_simple();

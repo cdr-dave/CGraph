@@ -29,7 +29,7 @@ CStatus GPipeline::registerGElement(GElementPtr *elementRef,
          */
         if ((*elementRef) != nullptr
             && (*elementRef)->param_manager_ != nullptr) {
-            return CStatus("group register duplicate");
+            CGRAPH_RETURN_ERROR_STATUS("group register duplicate")
         }
     } else if constexpr (std::is_base_of<GNode, T>::value || std::is_base_of<GAdapter, T>::value) {
         /**
@@ -40,9 +40,40 @@ CStatus GPipeline::registerGElement(GElementPtr *elementRef,
     }
 
     CGRAPH_ASSERT_NOT_NULL(*elementRef)
-    status = (*elementRef)->setElementInfo(dependElements, name, loop, level,
-                                           this->param_manager_,
-                                           this->thread_pool_);
+    status = (*elementRef)->setElementInfo(dependElements, name, loop, level, this->param_manager_);
+    CGRAPH_FUNCTION_CHECK_STATUS
+
+    status = element_manager_->add(dynamic_cast<GElementPtr>(*elementRef));
+    CGRAPH_FUNCTION_CHECK_STATUS
+    element_repository_.insert(*elementRef);
+    CGRAPH_FUNCTION_END
+}
+
+
+template<typename GFunction, CLevel level>
+CStatus GPipeline::registerGElement(GFunctionPtr *functionRef,
+                                    const GElementPtrSet &dependElements,
+                                    const std::string &name,
+                                    CSize loop) {
+    // 通过模板特化的方式，简化 GFunction 的注册方式
+    return this->registerGElement<GFunction, level>((GElementPtr *)(functionRef), dependElements, name, loop);
+}
+
+
+template<typename TNode, typename ...Args,
+        std::enable_if_t<std::is_base_of<GTemplateNode<Args ...>, TNode>::value, int>>
+CStatus GPipeline::registerGElement(GTemplateNodePtr<Args ...> *elementRef,
+                                    const GElementPtrSet &dependElements,
+                                    Args... args) {
+    CGRAPH_FUNCTION_BEGIN
+    CGRAPH_ASSERT_INIT(false)
+
+    // 构建模板node信息
+    (*elementRef) = new(std::nothrow) TNode(std::forward<Args &&>(args)...);
+    CGRAPH_ASSERT_NOT_NULL(*elementRef)
+    // 以下 name，loop，level 信息，可以由外部设置
+    status = (*elementRef)->setElementInfo(dependElements, CGRAPH_EMPTY, CGRAPH_DEFAULT_LOOP_TIMES,
+                                           CGRAPH_DEFAULT_ELEMENT_LEVEL, this->param_manager_);
     CGRAPH_FUNCTION_CHECK_STATUS
 
     status = element_manager_->add(dynamic_cast<GElementPtr>(*elementRef));
@@ -57,11 +88,7 @@ template<typename T, CLevel level,
 GNodePtr GPipeline::createGNode(const GNodeInfo &info) {
     CGRAPH_FUNCTION_BEGIN
     GNodePtr node = CGRAPH_SAFE_MALLOC_COBJECT(T)
-    CGRAPH_ASSERT_NOT_NULL_RETURN_NULL(node)
-
-    status = node->setElementInfo(info.dependence_, info.name_, info.loop_, level,
-                                  this->param_manager_,
-                                  this->thread_pool_);
+    status = node->setElementInfo(info.dependence_, info.name_, info.loop_, level, this->param_manager_);
     if (!status.isOK()) {
         CGRAPH_DELETE_PTR(node);
         return nullptr;
@@ -79,7 +106,6 @@ GGroupPtr GPipeline::createGGroup(const GElementPtrArr &elements,
                                   const std::string &name,
                                   CSize loop) {
     CGRAPH_FUNCTION_BEGIN
-    CGRAPH_ASSERT_NOT_NULL_RETURN_NULL(this->thread_pool_)    // 所有的pipeline必须有线程池
 
     // 如果不是所有的都非空，则创建失败
     if (std::any_of(elements.begin(), elements.end(),
@@ -93,14 +119,12 @@ GGroupPtr GPipeline::createGGroup(const GElementPtrArr &elements,
     }
 
     GGroupPtr group = CGRAPH_SAFE_MALLOC_COBJECT(T)
-    CGRAPH_ASSERT_NOT_NULL_RETURN_NULL(group)
     for (GElementPtr element : elements) {
         group->addElement(element);
     }
 
     status = group->setElementInfo(dependElements, name, loop, level,
-                                   nullptr,
-                                   this->thread_pool_);    // 注册group信息的时候，不能注册paramManager信息
+                                   nullptr);    // 注册group信息的时候，不能注册paramManager信息
     if (unlikely(!status.isOK())) {
         CGRAPH_DELETE_PTR(group)
         return nullptr;
@@ -108,17 +132,6 @@ GGroupPtr GPipeline::createGGroup(const GElementPtrArr &elements,
 
     this->element_repository_.insert(group);
     return group;
-}
-
-
-template<typename T, std::enable_if_t<std::is_base_of<GParam, T>::value, int>>
-CStatus GPipeline::createGParam(const std::string& key) {
-    CGRAPH_FUNCTION_BEGIN
-    CGRAPH_ASSERT_INIT(false)
-    CGRAPH_ASSERT_NOT_NULL(param_manager_)
-
-    status = param_manager_->create<T>(key);
-    CGRAPH_FUNCTION_END
 }
 
 
@@ -153,8 +166,24 @@ GPipeline* GPipeline::addGDaemon(CMSec ms, DParam* param) {
 
     GDaemonPtr daemon = CGRAPH_SAFE_MALLOC_COBJECT(TDaemon)
     daemon->setDParam<DParam>(param)
-            ->setInterval(ms)
-            ->setPipelineParamManager(param_manager_);
+            ->setInterval(ms);
+    daemon->setGParamManager(this->param_manager_);
+    status = daemon_manager_->add(daemon);
+
+    return status.isOK() ? this : nullptr;
+}
+
+
+template<typename TDaemon, typename ...Args,
+        std::enable_if_t<std::is_base_of<GTemplateDaemon<Args...>, TDaemon>::value, int>>
+GPipeline* GPipeline::addGDaemon(CMSec ms, Args... args) {
+    CGRAPH_FUNCTION_BEGIN
+    CGRAPH_ASSERT_INIT_RETURN_NULL(false)
+    CGRAPH_ASSERT_NOT_NULL_RETURN_NULL(param_manager_)
+    CGRAPH_ASSERT_NOT_NULL_RETURN_NULL(daemon_manager_)
+    auto daemon = UAllocator::safeMallocTemplateCObject<TDaemon>(std::forward<Args>(args)...);
+    daemon->setInterval(ms);
+    daemon->setGParamManager(this->param_manager_);
     status = daemon_manager_->add(daemon);
 
     return status.isOK() ? this : nullptr;

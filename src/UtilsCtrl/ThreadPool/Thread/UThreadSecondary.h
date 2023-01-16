@@ -38,17 +38,21 @@ protected:
     /**
      * 设置pool的信息
      * @param poolTaskQueue
+     * @param poolPriorityTaskQueue
      * @param config
      * @return
      */
-    CStatus setThreadPoolInfo(UAtomicQueue<UTaskWrapper>* poolTaskQueue,
+    CStatus setThreadPoolInfo(UAtomicQueue<UTask>* poolTaskQueue,
+                              UAtomicPriorityQueue<UTask>* poolPriorityTaskQueue,
                               UThreadPoolConfigPtr config) {
         CGRAPH_FUNCTION_BEGIN
         CGRAPH_ASSERT_INIT(false)    // 初始化之前，设置参数
         CGRAPH_ASSERT_NOT_NULL(poolTaskQueue)
+        CGRAPH_ASSERT_NOT_NULL(poolPriorityTaskQueue)
         CGRAPH_ASSERT_NOT_NULL(config)
 
         this->pool_task_queue_ = poolTaskQueue;
+        this->pool_priority_task_queue_ = poolPriorityTaskQueue;
         this->config_ = config;
         CGRAPH_FUNCTION_END
     }
@@ -77,7 +81,7 @@ protected:
      * 任务执行函数，从线程池的任务队列中获取信息
      */
     CVoid processTask() {
-        UTaskWrapper task;
+        UTask task;
         if (popPoolTask(task)) {
             runTask(task);
         } else {
@@ -90,7 +94,7 @@ protected:
      * 批量执行n个任务
      */
     CVoid processTasks() {
-        UTaskWrapperArr tasks;
+        UTaskArr tasks;
         if (popPoolTask(tasks)) {
             runTasks(tasks);
         } else {
@@ -115,7 +119,7 @@ protected:
     }
 
 private:
-    int cur_ttl_;                                                             // 当前最大生存周期
+    int cur_ttl_ = 0;                                                      // 当前最大生存周期
 
     friend class UThreadPool;
 };

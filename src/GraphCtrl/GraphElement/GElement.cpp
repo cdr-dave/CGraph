@@ -21,7 +21,8 @@ const std::string& GElement::getSession() const {
 
 
 GElement::GElement() {
-    this->session_ = CGRAPH_GENERATE_SESSION
+    this->session_ = CGRAPH_GENERATE_SESSION;
+    this->thread_pool_ = UThreadPoolSingleton::get();
 }
 
 
@@ -100,6 +101,7 @@ CStatus GElement::process(bool isMock) {
 CStatus GElement::addDependGElements(const GElementPtrSet& elements) {
     CGRAPH_FUNCTION_BEGIN
     for (GElementPtr cur: elements) {
+        CGRAPH_ASSERT_NOT_NULL(cur)
         if (this == cur) {
             continue;
         }
@@ -117,15 +119,12 @@ CStatus GElement::setElementInfo(const GElementPtrSet& dependElements,
                                  const std::string& name,
                                  CSize loop,
                                  CLevel level,
-                                 GParamManagerPtr paramManager,
-                                 UThreadPoolPtr threadPool) {
+                                 GParamManagerPtr paramManager) {
     CGRAPH_FUNCTION_BEGIN
-    CGRAPH_ASSERT_NOT_NULL(threadPool)
     CGRAPH_ASSERT_INIT(false)
 
     this->setName(name)->setLoop(loop)->setLevel(level);
     param_manager_ = paramManager;
-    thread_pool_ = threadPool;
     status = this->addDependGElements(dependElements);
     CGRAPH_FUNCTION_END
 }
@@ -184,7 +183,10 @@ CStatus GElement::fatProcessor(const CFunctionType& type) {
                 CGRAPH_RETURN_ERROR_STATUS("get function type error")
         }
     } catch (const CException& ex) {
+        status = doAspect(GAspectType::BEGIN_CRASH);
+        CGRAPH_FUNCTION_CHECK_STATUS
         status = crashed(ex);
+        doAspect(GAspectType::FINISH_CRASH, status);
     }
 
     CGRAPH_FUNCTION_END
@@ -206,6 +208,16 @@ CStatus GElement::crashed(const CException& ex) {
      * 如果需要处理的话，可以通过覆写此函数来
      */
     CGRAPH_THROW_EXCEPTION(ex.what())
+}
+
+
+CIndex GElement::getThreadNum() {
+    if (nullptr == thread_pool_) {
+        return CGRAPH_SECONDARY_THREAD_COMMON_ID;    // 理论不存在的情况
+    }
+
+    auto tid = (CSize)std::hash<std::thread::id>{}(std::this_thread::get_id());
+    return thread_pool_->getThreadNum(tid);
 }
 
 CGRAPH_NAMESPACE_END

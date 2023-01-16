@@ -24,16 +24,29 @@ public:
     GCluster& operator=(const GCluster& cluster);
 
 protected:
-    /** cluster结构在工程中，被用于自动合并和串行流程。禁止外部修改cluster的逻辑结构 */
-    CStatus init() final;
-    CStatus destroy() final;
-    CStatus run() final;
-    CStatus process(bool isMock) final;
-
-    CStatus beforeRun() final;
-    CStatus afterRun() final;
-
     CStatus addElement(GElementPtr element) final;
+
+    /** cluster结构在工程中，被用于自动合并和串行流程。禁止外部修改cluster的逻辑结构 */
+    CStatus run() final;
+
+    /**
+     * 执行所有的 element 的run方法
+     * @param isMock
+     * @return
+     */
+    CStatus process(CBool isMock) final;
+
+    /**
+     * 执行 run 方法之前的操作
+     * @return
+     */
+    CStatus beforeRun() final;
+
+    /**
+     * 执行 run 方法之后的操作
+     * @return
+     */
+    CStatus afterRun() final;
 
     /**
      * 获取element个数信息
@@ -45,14 +58,14 @@ protected:
      * 判断是否所有element均执行结束了
      * @return
      */
-    CBool isElementsDone();
+    CBool isClusterDone();
 
-private:
-    GElementPtrArr cluster_elements_;    // 包含的元素信息
 
     friend class GElementManager;
     friend class GRegion;
     friend class GPipeline;
+    friend class GStaticEngine;
+    friend class GDynamicEngine;
 };
 
 using GClusterPtr = GCluster *;
